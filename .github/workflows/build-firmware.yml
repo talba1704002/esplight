@@ -2,7 +2,6 @@ name: Build ESP32 Matter Light
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 env:
@@ -23,14 +22,16 @@ jobs:
           CMAKE_FILE=$(grep -rl --include=CMakeLists.txt "tools/cmake/project.cmake" "$GITHUB_WORKSPACE" \
             | grep -v "/build/" | head -n 1)
           if [ -z "$CMAKE_FILE" ]; then
-            echo "ERROR: no top-level CMakeLists.txt with project.cmake found. Repo contents:"
+            echo "ERROR: no top-level CMakeLists.txt with project.cmake found."
             find "$GITHUB_WORKSPACE" -maxdepth 3 -not -path '*/.git/*'
             exit 1
           fi
           PROJECT_PATH=$(dirname "$CMAKE_FILE")
-          echo "Project folder: $PROJECT_PATH"
           echo "PROJECT_PATH=$PROJECT_PATH" >> "$GITHUB_ENV"
-          ls -la "$PROJECT_PATH"
+          echo "=== Project folder: $PROJECT_PATH ==="
+          ls -la "$PROJECT_PATH" "$PROJECT_PATH/main"
+          echo "=== main/CMakeLists.txt ==="
+          cat "$PROJECT_PATH/main/CMakeLists.txt"
 
       - name: Free disk space
         run: |
@@ -65,17 +66,22 @@ jobs:
 
       - name: Build firmware
         run: |
-          # esp-matter install upgrades cryptography; IDF 5.2 needs <42
           "$HOME/.espressif/python_env/idf5.2_py3.12_env/bin/python" \
             -m pip install "cryptography>=2.1.4,<42"
 
           . "$HOME/esp-idf/export.sh"
           . "$HOME/esp-matter/export.sh"
+          export ESP_MATTER_DEVICE_PATH="$ESP_MATTER_PATH/device_hal/device/esp32_devkit_c"
 
           cd "$PROJECT_PATH"
           rm -f sdkconfig
-          idf.py set-target esp32
-          idf.py build
+          idf.py set-target esp32 2>&1 | tee /tmp/configure.log || true
+
+          if ! idf.py build 2>&1 | tee /tmp/build.log; then
+            echo "################ REAL ERROR LINES ################"
+            grep -n -B3 -A15 -E "CMake Error|Failed to resolve|error:|undefined reference" /tmp/build.log | head -n 120
+            exit 1
+          fi
 
           cd build
           esptool.py --chip esp32 merge_bin -o merged-flash.bin @flash_args
@@ -89,4 +95,3 @@ jobs:
             ${{ env.PROJECT_PATH }}/build/merged-flash.bin
             ${{ env.PROJECT_PATH }}/build/bootloader/bootloader.bin
             ${{ env.PROJECT_PATH }}/build/partition_table/partition-table.bin
-            ${{ env.PROJECT_PATH }}/build/*.bin
