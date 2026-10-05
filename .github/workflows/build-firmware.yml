@@ -17,21 +17,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Locate ESP-IDF project folder
+      - name: Set project folder
         run: |
-          CMAKE_FILE=$(grep -rl --include=CMakeLists.txt "tools/cmake/project.cmake" "$GITHUB_WORKSPACE" \
-            | grep -v "/build/" | head -n 1)
-          if [ -z "$CMAKE_FILE" ]; then
-            echo "ERROR: no top-level CMakeLists.txt with project.cmake found."
-            find "$GITHUB_WORKSPACE" -maxdepth 3 -not -path '*/.git/*'
-            exit 1
-          fi
-          PROJECT_PATH=$(dirname "$CMAKE_FILE")
-          echo "PROJECT_PATH=$PROJECT_PATH" >> "$GITHUB_ENV"
-          echo "=== Project folder: $PROJECT_PATH ==="
-          ls -la "$PROJECT_PATH" "$PROJECT_PATH/main"
+          echo "PROJECT_PATH=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          echo "=== root CMakeLists.txt ==="
+          cat "$GITHUB_WORKSPACE/CMakeLists.txt"
           echo "=== main/CMakeLists.txt ==="
-          cat "$PROJECT_PATH/main/CMakeLists.txt"
+          cat "$GITHUB_WORKSPACE/main/CMakeLists.txt"
 
       - name: Free disk space
         run: |
@@ -66,6 +58,7 @@ jobs:
 
       - name: Build firmware
         run: |
+          # esp-matter install upgrades cryptography; IDF 5.2 needs <42
           "$HOME/.espressif/python_env/idf5.2_py3.12_env/bin/python" \
             -m pip install "cryptography>=2.1.4,<42"
 
