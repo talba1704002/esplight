@@ -1,21 +1,23 @@
-Name: Build ESP32 Matter Light
+name: Build ESP32 Matter Light
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  IDF_VERSION: v5.2.3
+  MATTER_BRANCH: release/v1.4
+  PROJECT_DIR: light_matter   # folder containing CMakeLists.txt
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 150
-
-    env:
-      IDF_VERSION: v5.2.3
-      MATTER_BRANCH: release/v1.4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Free disk space
         run: |
@@ -25,36 +27,43 @@ jobs:
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y git wget flex bison gperf python3-venv python3-pip python3-dev \
-            cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 \
-            gcc g++ pkg-config libdbus-1-dev libglib2.0-dev libavahi-client-dev unzip \
-            libgirepository1.0-dev libcairo2-dev libreadline-dev
+          sudo apt-get install -y git wget flex bison gperf python3 python3-pip \
+            python3-venv cmake ninja-build ccache libffi-dev libssl-dev dfu-util \
+            libusb-1.0-0 pkg-config libglib2.0-dev libdbus-1-dev \
+            libgirepository1.0-dev libcairo2-dev libsdl2-dev
 
       - name: Install ESP-IDF
         run: |
-          git clone --depth 1 -b "$IDF_VERSION" --recursive --shallow-submodules \
+          git clone -b "$IDF_VERSION" --depth 1 --recursive --shallow-submodules \
             https://github.com/espressif/esp-idf.git "$HOME/esp-idf"
-          cd "$HOME/esp-idf" && ./install.sh esp32
+          cd "$HOME/esp-idf"
+          ./install.sh esp32
 
-      - name: Install esp-matter
+      - name: Install ESP-Matter
         run: |
-          git clone --depth 1 -b "$MATTER_BRANCH" https://github.com/espressif/esp-matter.git "$HOME/esp-matter"
+          git clone -b "$MATTER_BRANCH" --depth 1 \
+            https://github.com/espressif/esp-matter.git "$HOME/esp-matter"
           cd "$HOME/esp-matter"
           git submodule update --init --depth 1
           cd connectedhomeip/connectedhomeip
-          ./scripts/checkout_submodules.py --shallow --platform esp32 linux --recursive
+          ./scripts/checkout_submodules.py --shallow --platform esp32 linux
           cd ../..
-          . "$HOME/esp-idf/export.sh"
           ./install.sh
 
-      - name: Fix Python Dependencies & Build firmware
+      - name: Build firmware
         run: |
+          # esp-matter install upgrades cryptography; IDF 5.2 needs <42
+          "$HOME/.espressif/python_env/idf5.2_py3.12_env/bin/python" \
+            -m pip install "cryptography>=2.1.4,<42"
+
           . "$HOME/esp-idf/export.sh"
-          /home/runner/.espressif/python_env/idf5.2_py3.12_env/bin/python -m pip install "cryptography==41.0.7"
           . "$HOME/esp-matter/export.sh"
+
+          cd "$GITHUB_WORKSPACE/$PROJECT_DIR"
           rm -f sdkconfig
           idf.py set-target esp32
           idf.py build
+
           cd build
           esptool.py --chip esp32 merge_bin -o merged-flash.bin @flash_args
           ls -l *.bin bootloader/*.bin partition_table/*.bin
@@ -64,9 +73,7 @@ jobs:
         with:
           name: esp32-matter-light-firmware
           path: |
-            build/merged-flash.bin
-            build/bootloader/bootloader.bin
-            build/partition_table/partition-table.bin
-            build/ota_data_initial.bin
-            build/esp32_matter_light.bin
-            build/flasher_args.json
+            ${{ env.PROJECT_DIR }}/build/merged-flash.bin
+            ${{ env.PROJECT_DIR }}/build/*.bin
+            ${{ env.PROJECT_DIR }}/build/bootloader/bootloader.bin
+            ${{ env.PROJECT_DIR }}/build/partition_table/partition-
