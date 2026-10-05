@@ -17,13 +17,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set project folder
+      - name: Verify project files
         run: |
           echo "PROJECT_PATH=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
           echo "=== root CMakeLists.txt ==="
-          cat "$GITHUB_WORKSPACE/CMakeLists.txt"
+          cat CMakeLists.txt
           echo "=== main/CMakeLists.txt ==="
-          cat "$GITHUB_WORKSPACE/main/CMakeLists.txt"
+          cat main/CMakeLists.txt
+          if ! grep -q "^project(" CMakeLists.txt; then
+            echo "ERROR: root CMakeLists.txt has no project(...) line. It has the wrong content."
+            exit 1
+          fi
+          if grep -q "idf_component_register" CMakeLists.txt; then
+            echo "ERROR: root CMakeLists.txt contains idf_component_register. That belongs in main/CMakeLists.txt."
+            exit 1
+          fi
+          if ! grep -q "idf_component_register" main/CMakeLists.txt; then
+            echo "ERROR: main/CMakeLists.txt is missing idf_component_register."
+            exit 1
+          fi
 
       - name: Free disk space
         run: |
@@ -58,6 +70,8 @@ jobs:
 
       - name: Build firmware
         run: |
+          set -o pipefail
+
           # esp-matter install upgrades cryptography; IDF 5.2 needs <42
           "$HOME/.espressif/python_env/idf5.2_py3.12_env/bin/python" \
             -m pip install "cryptography>=2.1.4,<42"
@@ -68,7 +82,7 @@ jobs:
 
           cd "$PROJECT_PATH"
           rm -f sdkconfig
-          idf.py set-target esp32 2>&1 | tee /tmp/configure.log || true
+          idf.py set-target esp32 2>&1 | tee /tmp/configure.log
 
           if ! idf.py build 2>&1 | tee /tmp/build.log; then
             echo "################ REAL ERROR LINES ################"
