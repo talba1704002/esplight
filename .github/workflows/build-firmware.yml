@@ -1,0 +1,71 @@
+name: Build ESP32 Matter Light
+
+on:
+  workflow_dispatch:        # "Run workflow" button (works from a phone browser)
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+
+    env:
+      IDF_VERSION: v5.2.3            # change here if esp-matter asks for another IDF
+      MATTER_BRANCH: release/v1.4
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git wget flex bison gperf python3-venv python3-pip python3-dev \
+            cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0 \
+            gcc g++ pkg-config libdbus-1-dev libglib2.0-dev libavahi-client-dev unzip \
+            libgirepository1.0-dev libcairo2-dev libreadline-dev
+
+      - name: Install ESP-IDF
+        run: |
+          git clone --depth 1 -b "$IDF_VERSION" --recursive --shallow-submodules \
+            https://github.com/espressif/esp-idf.git "$HOME/esp-idf"
+          cd "$HOME/esp-idf" && ./install.sh esp32
+
+      - name: Install esp-matter
+        run: |
+          git clone --depth 1 -b "$MATTER_BRANCH" https://github.com/espressif/esp-matter.git "$HOME/esp-matter"
+          cd "$HOME/esp-matter"
+          git submodule update --init --depth 1
+          cd connectedhomeip/connectedhomeip
+          ./scripts/checkout_submodules.py --shallow --platform esp32 linux --recursive
+          cd ../..
+          . "$HOME/esp-idf/export.sh"
+          ./install.sh
+
+      - name: Build firmware
+        run: |
+          . "$HOME/esp-idf/export.sh"
+          . "$HOME/esp-matter/export.sh"
+          rm -f sdkconfig
+          idf.py set-target esp32
+          idf.py build
+          cd build
+          esptool.py --chip esp32 merge_bin -o merged-flash.bin @flash_args
+          ls -l *.bin bootloader/*.bin partition_table/*.bin
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-matter-light-firmware
+          path: |
+            build/merged-flash.bin
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
+            build/ota_data_initial.bin
+            build/esp32_matter_light.bin
+            build/flasher_args.json
