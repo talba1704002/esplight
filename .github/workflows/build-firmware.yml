@@ -50,7 +50,7 @@ jobs:
       - name: Fix Python Dependencies & Build firmware
         run: |
           . "$HOME/esp-idf/export.sh"
-          python3 -m pip install --upgrade "cryptography<42,>=2.1.4"
+          /home/runner/.espressif/python_env/idf5.2_py3.12_env/bin/python -m pip install "cryptography==41.0.7"
           . "$HOME/esp-matter/export.sh"
           rm -f sdkconfig
           idf.py set-target esp32
