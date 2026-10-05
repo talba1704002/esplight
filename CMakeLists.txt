@@ -7,10 +7,12 @@ set(MATTER_SDK_PATH ${ESP_MATTER_PATH}/connectedhomeip/connectedhomeip)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 include(${ESP_MATTER_PATH}/examples/common/cmake_common/components_include.cmake)
 
+# NOTE: device_hal/device is intentionally NOT included. This project drives
+# its relay/button directly with GPIO and does not use esp-matter's board HAL
+# (led_driver, button_driver), which would otherwise fail to resolve.
 set(EXTRA_COMPONENT_DIRS
     "${MATTER_SDK_PATH}/config/esp32/components"
     "${ESP_MATTER_PATH}/components"
-    "${ESP_MATTER_PATH}/device_hal/device"
     ${extra_components_dirs_append})
 
 project(esp32_matter_light)
