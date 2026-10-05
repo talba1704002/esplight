@@ -78,7 +78,6 @@ jobs:
 
           . "$HOME/esp-idf/export.sh"
           . "$HOME/esp-matter/export.sh"
-          export ESP_MATTER_DEVICE_PATH="$ESP_MATTER_PATH/device_hal/device/esp32_devkit_c"
 
           cd "$PROJECT_PATH"
           rm -f sdkconfig
