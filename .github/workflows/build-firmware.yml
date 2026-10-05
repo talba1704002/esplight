@@ -8,7 +8,6 @@ on:
 env:
   IDF_VERSION: v5.2.3
   MATTER_BRANCH: release/v1.4
-  PROJECT_DIR: light_matter   # folder containing CMakeLists.txt
 
 jobs:
   build:
@@ -18,6 +17,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Locate ESP-IDF project folder
+        run: |
+          CMAKE_FILE=$(grep -rl --include=CMakeLists.txt "tools/cmake/project.cmake" "$GITHUB_WORKSPACE" \
+            | grep -v "/build/" | head -n 1)
+          if [ -z "$CMAKE_FILE" ]; then
+            echo "ERROR: no top-level CMakeLists.txt with project.cmake found. Repo contents:"
+            find "$GITHUB_WORKSPACE" -maxdepth 3 -not -path '*/.git/*'
+            exit 1
+          fi
+          PROJECT_PATH=$(dirname "$CMAKE_FILE")
+          echo "Project folder: $PROJECT_PATH"
+          echo "PROJECT_PATH=$PROJECT_PATH" >> "$GITHUB_ENV"
+          ls -la "$PROJECT_PATH"
 
       - name: Free disk space
         run: |
@@ -59,7 +72,7 @@ jobs:
           . "$HOME/esp-idf/export.sh"
           . "$HOME/esp-matter/export.sh"
 
-          cd "$GITHUB_WORKSPACE/$PROJECT_DIR"
+          cd "$PROJECT_PATH"
           rm -f sdkconfig
           idf.py set-target esp32
           idf.py build
@@ -73,7 +86,7 @@ jobs:
         with:
           name: esp32-matter-light-firmware
           path: |
-            ${{ env.PROJECT_DIR }}/build/merged-flash.bin
-            ${{ env.PROJECT_DIR }}/build/*.bin
-            ${{ env.PROJECT_DIR }}/build/bootloader/bootloader.bin
-            ${{ env.PROJECT_DIR }}/build/partition_table/partition-
+            ${{ env.PROJECT_PATH }}/build/merged-flash.bin
+            ${{ env.PROJECT_PATH }}/build/bootloader/bootloader.bin
+            ${{ env.PROJECT_PATH }}/build/partition_table/partition-table.bin
+            ${{ env.PROJECT_PATH }}/build/*.bin
