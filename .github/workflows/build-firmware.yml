@@ -1,7 +1,7 @@
-name: Build ESP32 Matter Light
+Name: Build ESP32 Matter Light
 
 on:
-  workflow_dispatch:        # "Run workflow" button (works from a phone browser)
+  workflow_dispatch:
   push:
     branches: [ main, master ]
 
@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 150
 
     env:
-      IDF_VERSION: v5.2.3            # change here if esp-matter asks for another IDF
+      IDF_VERSION: v5.2.3
       MATTER_BRANCH: release/v1.4
 
     steps:
@@ -47,9 +47,10 @@ jobs:
           . "$HOME/esp-idf/export.sh"
           ./install.sh
 
-      - name: Build firmware
+      - name: Fix Python Dependencies & Build firmware
         run: |
           . "$HOME/esp-idf/export.sh"
+          python3 -m pip install --upgrade "cryptography<42,>=2.1.4"
           . "$HOME/esp-matter/export.sh"
           rm -f sdkconfig
           idf.py set-target esp32
