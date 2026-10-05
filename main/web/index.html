@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<title>LIGHT Controller</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f6fa;--card:#fff;--tx:#111827;--mu:#6b7280;--ln:#e5e7eb;--in:#f9fafb;--pr:#4f46e5;--prs:#eef2ff;--ok:#059669;--okb:#d1fae5;--er:#dc2626;--erb:#fee2e2;--wa:#b45309;--wab:#fef3c7;--sh:0 1px 2px rgba(17,24,39,.05),0 8px 24px rgba(17,24,39,.06)}
+@media(prefers-color-scheme:dark){:root{--bg:#0b0f1a;--card:#141a2a;--tx:#e8eaf0;--mu:#9aa3b5;--ln:#252d42;--in:#0f1424;--pr:#818cf8;--prs:#1e2347;--ok:#34d399;--okb:#0f3a2c;--er:#f87171;--erb:#3f1b1b;--wa:#fbbf24;--wab:#3b2d0c;--sh:0 1px 2px rgba(0,0,0,.4)}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--tx);-webkit-text-size-adjust:100%}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;background:var(--card);border-bottom:1px solid var(--ln)}
+.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#4f46e5,#06b6d4);display:grid;place-items:center;flex:none}
+.logo svg{width:21px;height:21px;fill:#fff}
+.brand{flex:1;line-height:1.2}
+.brand b{display:block;font-size:1.02rem}
+.brand span{font-size:.72rem;color:var(--mu)}
+.temp{font-size:.74rem;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--ln);color:var(--mu);white-space:nowrap}
+.temp.apon{background:var(--okb);color:var(--ok)}
+main{max-width:540px;margin:0 auto;padding:6px 16px 120px}
+.pane{display:none}
+body[data-t=home] .pane[data-t=home],body[data-t=sched] .pane[data-t=sched],body[data-t=net] .pane[data-t=net],body[data-t=set] .pane[data-t=set]{display:block}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:18px;padding:18px;margin:14px 0;box-shadow:var(--sh)}
+h2{margin:0 0 14px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mu)}
+.page-t{margin:20px 2px 2px;font-size:1.35rem;font-weight:700}
+.page-s{margin:0 2px;font-size:.85rem;color:var(--mu)}
+.rtc-card{border:0;color:#fff;text-align:center;padding:26px 18px;background:radial-gradient(120% 140% at 0% 0%,#6366f1 0%,#4338ca 45%,#0e7490 100%)}
+.rtc-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.16em;opacity:.8}
+.big{font-size:clamp(1.3rem,6.2vw,2rem);white-space:nowrap;font-weight:700;margin-top:8px;font-variant-numeric:tabular-nums}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--in);border:1px solid var(--ln);border-radius:14px;padding:12px 14px;min-width:0}
+.tile>span{display:block;font-size:.7rem;font-weight:600;color:var(--mu);margin-bottom:6px}
+.tile>div{font-size:.95rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#per{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem}
+.on,.off{display:inline-block;padding:3px 12px;border-radius:999px;font-size:.78rem;font-weight:700}
+.on{background:var(--okb);color:var(--ok)}
+.off{background:var(--erb);color:var(--er)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--ln);font-size:.9rem}
+.row>:first-child{color:var(--mu)}
+button{font:inherit;font-size:.93rem;font-weight:600;width:100%;padding:13px;margin:10px 0 0;border:0;border-radius:12px;background:var(--pr);color:#fff;cursor:pointer;transition:filter .15s,transform .06s}
+button:hover{filter:brightness(1.07)}
+button:active{transform:scale(.98)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.seg button{margin:0;padding:16px 4px;font-size:.8rem;letter-spacing:.03em}
+.b-on{background:#059669}
+.b-off{background:#dc2626}
+.b-auto{background:var(--in);color:var(--tx);border:1px solid var(--ln)}
+.b-add{background:var(--prs);color:var(--pr)}
+select,input[type=text],input[type=password],input[type=number]{width:100%;padding:12px 13px;font:inherit;font-size:.93rem;border:1px solid var(--ln);border-radius:12px;background:var(--in);color:var(--tx)}
+select:focus,input:focus{outline:2px solid var(--pr);outline-offset:1px}
+input:disabled{opacity:.5}
+input[type=checkbox]{-webkit-appearance:none;appearance:none;width:44px;height:26px;margin:0;padding:0;border:0;border-radius:999px;background:#9ca3af;position:relative;flex:none;cursor:pointer;transition:background .2s}
+input[type=checkbox]::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s}
+input[type=checkbox]:checked{background:var(--ok)}
+input[type=checkbox]:checked::after{left:21px}
+.sch{border:1px solid var(--ln);border-radius:16px;padding:14px;margin:12px 0;background:var(--in)}
+.sh{display:flex;align-items:center;gap:10px}
+.sh label{flex:1;display:flex;align-items:center;gap:9px;font-size:.84rem;color:var(--mu)}
+.num{background:var(--pr);color:#fff;border-radius:9px;padding:3px 10px;font-size:.78rem}
+.del{width:auto;padding:8px 13px;margin:0;font-size:.78rem;background:var(--erb);color:var(--er)}
+.pair{display:flex;align-items:center;gap:8px;margin:12px 0 0}
+.pair small{width:2.6em;margin:0;font-weight:700;font-size:.72rem;letter-spacing:.06em}
+.pair span{font-weight:700}
+.pair select{flex:1;min-width:0}
+small{display:block;margin-top:12px;font-size:.77rem;line-height:1.5;color:var(--mu)}
+.advbox label{display:block;margin:15px 0 6px;font-size:.78rem;font-weight:600;color:var(--mu)}
+.advbox label.sw{display:flex;align-items:center;gap:11px;margin-top:16px;font-size:.9rem;font-weight:500;color:var(--tx)}
+details summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mu)}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"+";font-size:1.3rem;line-height:1}
+details[open] summary::after{content:"\2212"}
+.wh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.wh h2{margin:0}
+.wb{font-size:.7rem;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--ln);color:var(--mu);white-space:nowrap}
+.wb.w2{background:var(--okb);color:var(--ok)}
+#msg{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:30;width:calc(100% - 32px);max-width:480px;padding:12px 16px;border-radius:14px;font-size:.88rem;font-weight:600;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+#msg:empty{display:none}
+.ok{background:var(--ok);color:#fff}
+.err{background:var(--er);color:#fff}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;justify-content:center;gap:4px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--ln)}
+.tabs button{flex:1;max-width:130px;margin:0;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;color:var(--mu);font-size:.68rem;font-weight:600;border-radius:12px}
+.tabs button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs button.act{background:var(--prs);color:var(--pr)}
+footer{text-align:center;font-size:.72rem;color:var(--mu);padding:14px 0 0}
+</style>
+</head>
+<body data-t="home">
+<header class="top">
+  <div class="logo"><svg viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg></div>
+  <div class="brand"><b>LIGHT Controller</b><span>MADE BY TALHA</span></div>
+  <div class="temp" id="apb">AP --</div>
+</header>
+<main>
+
+<section class="pane" data-t="home">
+  <div class="card rtc-card">
+    <div class="rtc-title">Current RTC Time</div>
+    <div class="big" id="time">--:--</div>
+  </div>
+
+  <div class="card">
+    <h2>Status</h2>
+    <div class="tiles">
+      <div class="tile"><span>Schedule</span><div id="sch">--</div></div>
+      <div class="tile"><span>Relay</span><div id="rel">--</div></div>
+      <div class="tile"><span>Override</span><div id="ovr">--</div></div>
+      <div class="tile"><span>Period ID</span><div id="per">--</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Manual control</h2>
+    <div class="seg">
+      <button class="b-on"   onclick="cmd('ON')">FORCE ON</button>
+      <button class="b-off"  onclick="cmd('OFF')">FORCE OFF</button>
+      <button class="b-auto" onclick="cmd('AUTO')">AUTO</button>
+    </div>
+    <small>Manual override lasts until the next schedule change. Google Home and the button use the same override.</small>
+  </div>
+</section>
+
+<section class="pane" data-t="sched">
+  <div class="page-t">Schedules</div>
+  <div class="page-s">Up to 10 time windows</div>
+  <div class="card">
+    <div id="list"></div>
+    <button class="b-add" id="addBtn" onclick="addRow([8,0,18,0,1]);renum()">+ Add schedule</button>
+    <button onclick="saveSchedule()">Save Schedules</button>
+    <small>Light is ON when the time is inside any enabled schedule.</small>
+  </div>
+</section>
+
+<section class="pane" data-t="net">
+  <div class="page-t">Network</div>
+  <div class="page-s">Controller Wi-Fi access point</div>
+  <div class="card">
+    <div class="wh"><h2>Access Point</h2><span class="wb" id="wb">AP: --</span></div>
+    <div class="row"><span>Router / Matter</span><span>managed by Google Home</span></div>
+    <div class="row"><span>AP address</span><span>http://192.168.4.1/</span></div>
+    <div class="advbox">
+      <label>Wi-Fi name (SSID)</label><input type="text" id="a_ssid" maxlength="32">
+      <label>Wi-Fi password (8-63 chars)</label><input type="password" id="a_pass" maxlength="63" placeholder="leave blank to keep current">
+      <label class="sw"><input type="checkbox" id="a_open" onchange="$('a_pass').disabled=this.checked"> Open network (no password)</label>
+      <label>Wi-Fi channel</label><select id="a_ch"></select>
+      <label>Wi-Fi mode</label><select id="a_proto"></select>
+      <label>Max connected phones</label><select id="a_mc"></select>
+      <label>Wi-Fi AP auto-off</label><select id="a_ao"></select>
+    </div>
+    <button onclick="saveAdv()">Save Access Point</button>
+    <small>The router connection is set up through Matter (Google Home). The channel follows the router while it is connected. Saving name, password, channel, mode or clients restarts the AP: reconnect afterwards. Double click on the button turns the AP on/off.</small>
+  </div>
+</section>
+
+<section class="pane" data-t="set">
+  <div class="page-t">Settings</div>
+  <div class="page-s">Clock and advanced options</div>
+  <div class="card">
+    <h2>RTC time</h2>
+    <button onclick="syncTime()">Sync RTC with Phone Time</button>
+  </div>
+  <div class="card">
+    <details id="adv">
+      <summary>Advanced options</summary>
+      <div class="advbox">
+        <label>CPU clock</label><select id="a_cpu"></select>
+        <label>Wi-Fi TX power</label><select id="a_tx"></select>
+        <label>Double-click window (ms, 200-600)</label><input type="number" id="a_dbl" min="200" max="600" step="10">
+        <label>Long-press time (ms, 1000-5000)</label><input type="number" id="a_lng" min="1000" max="5000" step="100">
+        <button onclick="saveAdv()">Save Advanced</button>
+        <button class="b-auto" onclick="resetAdv()">Reset to defaults</button>
+        <small>CPU clock and button timing apply at once. Lower TX power = shorter range. Triple click on the button resets the AP only (name LIGHT, no password). Hold 10 s to factory-reset the Matter pairing.</small>
+      </div>
+    </details>
+  </div>
+</section>
+
+<footer>Firmware 1.0 &middot; Matter</footer>
+</main>
+
+<div id="msg"></div>
+
+<nav class="tabs" id="tabs">
+  <button data-t="home" class="act"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+  <button data-t="sched"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Schedules</button>
+  <button data-t="net"><svg viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/></svg>Network</button>
+  <button data-t="set"><svg viewBox="0 0 24 24"><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2.2"/><circle cx="9" cy="12" r="2.2"/><circle cx="17" cy="18" r="2.2"/></svg>Settings</button>
+</nav>
+
+<script>
+const $ = id => document.getElementById(id);
+const MAXS = 10;
+let busy = false, filled = false, timer = null;
+const pad = n => String(n).padStart(2, '0');
+
+function mkSel(count, val) {
+  const el = document.createElement('select');
+  for (let i = 0; i < count; i++) {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = pad(i);
+    el.appendChild(o);
+  }
+  el.value = val;
+  return el;
+}
+
+function pair(label, h, m) {
+  const d = document.createElement('div');
+  d.className = 'pair';
+  const l = document.createElement('small');
+  l.textContent = label;
+  const c = document.createElement('span');
+  c.textContent = ':';
+  const sh = mkSel(24, h), sm = mkSel(60, m);
+  sh.className = 'h'; sm.className = 'm';
+  d.append(l, sh, c, sm);
+  return d;
+}
+
+function addRow(a) {
+  if (document.querySelectorAll('.sch').length >= MAXS) return;
+  const d = document.createElement('div');
+  d.className = 'sch';
+  const head = document.createElement('div');
+  head.className = 'sh';
+  const num = document.createElement('b');
+  num.className = 'num';
+  const lab = document.createElement('label');
+  const cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.className = 'en'; cb.checked = !!a[4];
+  lab.append(cb, ' Enabled');
+  const del = document.createElement('button');
+  del.className = 'del'; del.textContent = 'Delete';
+  del.onclick = () => {
+    if (document.querySelectorAll('.sch').length <= 1) {
+      show({ok: false, msg: 'Keep at least one schedule (or disable it)'});
+      return;
+    }
+    d.remove(); renum();
+  };
+  head.append(num, lab, del);
+  d.append(head, pair('ON', a[0], a[1]), pair('OFF', a[2], a[3]));
+  $('list').appendChild(d);
+}
+
+function renum() {
+  const rows = document.querySelectorAll('.sch');
+  rows.forEach((r, i) => { r.querySelector('.num').textContent = '#' + (i + 1); });
+  $('addBtn').disabled = rows.length >= MAXS;
+}
+
+function loadList(str) {
+  $('list').innerHTML = '';
+  const items = (str || '').split(';').filter(x => x.length);
+  if (!items.length) items.push('6,0,0,0,1');
+  items.forEach(x => addRow(x.split(',').map(Number)));
+  renum();
+}
+
+function collect() {
+  const out = [];
+  document.querySelectorAll('.sch').forEach(r => {
+    const h = r.querySelectorAll('.h'), m = r.querySelectorAll('.m');
+    out.push([h[0].value, m[0].value, h[1].value, m[1].value,
+              r.querySelector('.en').checked ? 1 : 0].join(','));
+  });
+  return out.join(';');
+}
+
+let msgTimer = null;
+function show(r) {
+  const m = $('msg');
+  m.textContent = r.msg || '';
+  m.className = r.ok ? 'ok' : 'err';
+  clearTimeout(msgTimer);
+  if (r.msg) msgTimer = setTimeout(() => { m.textContent = ''; m.className = ''; }, r.ok ? 4000 : 7000);
+}
+
+function setOnOff(el, v) {
+  el.textContent = v;
+  el.className = (v === 'ON') ? 'on' : (v === 'OFF') ? 'off' : '';
+}
+
+async function api(url, data) {
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 4000);
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: new URLSearchParams(data || {}),
+      signal: c.signal
+    });
+    clearTimeout(t);
+    return await r.json();
+  } catch (e) {
+    return {ok: false, msg: 'No connection to controller'};
+  }
+}
+
+function schedule(ms) { clearTimeout(timer); timer = setTimeout(refresh, ms); }
+
+function setAp(on) {
+  const b = $('apb'), w = $('wb');
+  b.textContent = 'AP ' + (on ? 'ON' : 'OFF');
+  b.className = 'temp' + (on ? ' apon' : '');
+  w.textContent = 'AP: ' + (on ? 'ON' : 'OFF');
+  w.className = 'wb' + (on ? ' w2' : '');
+}
+
+// One request per minute, fired just after the RTC minute changes.
+async function refresh() {
+  if (busy) { schedule(1000); return; }
+  busy = true;
+  let next = 5000;
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 2500);
+    const r = await fetch('/api/status', {cache: 'no-store', signal: c.signal});
+    clearTimeout(t);
+    const s = await r.json();
+    if (s.time === undefined) throw new Error('busy');
+    $('time').textContent = s.time;
+    setOnOff($('sch'), s.schedule);
+    setOnOff($('rel'), s.relay);
+    $('ovr').textContent = s.override;
+    $('per').textContent = s.period || '--';
+    setAp(!!s.ap);
+    if (!filled) { loadList(s.list); filled = true; }
+    if (s.rtc) {
+      next = (60 - s.sec) * 1000 + 700;
+      if (next < 2000) next = 2000;
+      if (next > 61000) next = 61000;
+    }
+  } catch (e) {
+    $('time').textContent = 'Disconnected';
+  }
+  busy = false;
+  schedule(next);
+}
+
+async function cmd(c) { show(await api('/api/cmd', {c: c})); refresh(); }
+
+async function saveSchedule() {
+  const r = await api('/api/schedule', {list: collect()});
+  show(r);
+  if (r.ok) filled = false;
+  refresh();
+}
+
+async function syncTime() {
+  const d = new Date();
+  show(await api('/api/sync', {
+    y: d.getFullYear(), mo: d.getMonth() + 1, d: d.getDate(),
+    h: d.getHours(), mi: d.getMinutes(), s: d.getSeconds()
+  }));
+  refresh();
+}
+
+const TXL = ['2','5','7','8.5','11','13','15','17','18.5','19','19.5'];
+
+function fillSel(id, labels, vals) {
+  const el = $(id);
+  el.innerHTML = '';
+  labels.forEach((t, i) => {
+    const o = document.createElement('option');
+    o.value = vals ? vals[i] : i;
+    o.textContent = t;
+    el.appendChild(o);
+  });
+}
+
+function initAdv() {
+  const chs = Array.from({length: 13}, (_, i) => i + 1);
+  fillSel('a_cpu', ['160 MHz (cooler)', '240 MHz (fastest)'], [160, 240]);
+  fillSel('a_tx', TXL.map(x => x + ' dBm'));
+  fillSel('a_ch', chs.map(c => 'Channel ' + c), chs);
+  fillSel('a_proto', ['802.11b', '802.11b/g', '802.11b/g/n']);
+  fillSel('a_mc', ['1', '2', '3', '4'], [1, 2, 3, 4]);
+  fillSel('a_ao', ['Off (AP stays on)', 'On (off after 2 min with no phone)']);
+}
+
+async function loadAdv() {
+  try {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 3000);
+    const r = await fetch('/api/adv', {cache: 'no-store', signal: c.signal});
+    clearTimeout(t);
+    const s = await r.json();
+    $('a_cpu').value = s.cpu;
+    $('a_tx').value = s.tx;
+    $('a_ch').value = s.ch;
+    $('a_proto').value = s.proto;
+    $('a_mc').value = s.mc;
+    $('a_ao').value = s.ao;
+    $('a_dbl').value = s.dbl;
+    $('a_lng').value = s.lng;
+    $('a_ssid').value = s.ssid;
+    $('a_pass').value = '';
+    $('a_open').checked = !!s.open;
+    $('a_pass').disabled = !!s.open;
+  } catch (e) {
+    show({ok: false, msg: 'Could not load advanced settings'});
+  }
+}
+
+async function saveAdv() {
+  const r = await api('/api/adv', {
+    cpu: $('a_cpu').value, tx: $('a_tx').value, ch: $('a_ch').value, proto: $('a_proto').value,
+    mc: $('a_mc').value, ao: $('a_ao').value,
+    dbl: $('a_dbl').value, lng: $('a_lng').value,
+    ssid: $('a_ssid').value, pass: $('a_pass').value, open: $('a_open').checked ? 1 : 0
+  });
+  show(r);
+  if (r.ok) $('a_pass').value = '';
+}
+
+async function resetAdv() {
+  if (!confirm('Reset advanced settings to defaults? (Wi-Fi name LIGHT, no password)')) return;
+  const r = await api('/api/adv', {reset: 1});
+  show(r);
+  if (r.ok) loadAdv();
+}
+
+document.querySelectorAll('#tabs button').forEach(b => {
+  b.onclick = () => {
+    document.body.dataset.t = b.dataset.t;
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('act', x === b));
+    window.scrollTo(0, 0);
+  };
+});
+
+initAdv();
+loadList('');
+refresh();
+loadAdv();
+</script>
+</body>
+</html>
